@@ -1,6 +1,8 @@
 package builder_test
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -171,18 +173,78 @@ func TestValidateInput(t *testing.T) {
 		source     *string
 		legacyPath *string
 		path       *string
+		err        error
 	}
 	tests := []struct {
 		name    string
 		args    args
-		wantErr bool
+		wantErr error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "simple",
+			args: args{
+				source:     nil,
+				legacyPath: nil,
+				path:       nil,
+			},
+			wantErr: errors.Join(
+				builder.ErrNoSourceProvided,
+				builder.ErrNoSrcFolderPath,
+				builder.ErrNoDstFolderPath,
+			),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := builder.ValidateInput(tt.args.source, tt.args.legacyPath, tt.args.path); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInput() error = %v, wantErr %v", err, tt.wantErr)
+			err := builder.ValidateInput(tt.args.source, tt.args.legacyPath, tt.args.path)
+			require.ErrorAs(t, tt.wantErr, err)
+		})
+	}
+}
+
+func TestFindUniqueConcurrentIdxStatements(t *testing.T) {
+	type args struct {
+		lineJoin string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "several concurrent index with drop line",
+			args: args{
+				lineJoin: `
+				DROP INDEX companies_id_idx;
+				CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);
+				
+				DROP INDEX companies_title_idx;
+				CREATE INDEX CONCURRENTLY companies_title_idx ON companies (title);
+				
+				DROP INDEX clients_id_idx;
+				CREATE INDEX CONCURRENTLY clients_id_idx ON clients;`,
+			},
+			want: []string{
+				"companies_id_idx",
+				"companies_title_idx",
+				"clients_id_idx",
+			},
+		},
+		{
+			name: "one concurrent without drop line",
+			args: args{
+				lineJoin: `
+				CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);`,
+			},
+			want: []string{
+				"companies_id_idx",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := builder.FindUniqueConcurrentIdxStatements(tt.args.lineJoin); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FindUniqueConcurrentIdxStatements() = %v, want %v", got, tt.want)
 			}
 		})
 	}

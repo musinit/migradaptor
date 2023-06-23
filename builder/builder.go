@@ -1,18 +1,15 @@
 package builder
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
-	"os"
-	"path"
 	"regexp"
 	"strings"
 )
 
 var (
-	sqlExt          = regexp.MustCompile("\\.sql$")
-	specialCharsMap = map[rune]struct{}{
+	sqlExt                    = regexp.MustCompile("\\.sql$")
+	concurrentIndexesGroupReg = regexp.MustCompile("(?:(CREATE INDEX CONCURRENTLY)\\s+(?P<indexName>\\w+).+?;)")
+	specialCharsMap           = map[rune]struct{}{
 		rune('\t'): {},
 		rune('\n'): {},
 	}
@@ -43,31 +40,9 @@ func IsSqlMigrationFile(filename string) bool {
 	return isKeyExists(sqlExt, filename)
 }
 
-func CreateAndWrite(pth, filename string, data *bytes.Buffer) error {
-	fup, err := os.Create(path.Join(pth, filename))
-	if err != nil {
-		panic(err)
-	}
-	defer fup.Close()
-	if _, err := fup.Write(data.Bytes()); err != nil {
-		panic(err)
-	}
-	return nil
-}
-
 func isKeyExists(reg *regexp.Regexp, source string) bool {
 	fileparts := reg.FindAllStringSubmatch(source, -1)
 	return len(fileparts) != 0
-}
-
-func ReadFileLines(f *os.File) ([]string, error) {
-	result := make([]string, 0)
-	scanner := bufio.NewScanner(f)
-	scanner.Scan()
-	for scanner.Scan() {
-		result = append(result, scanner.Text())
-	}
-	return result, nil
 }
 
 func RemoveSpecialCharacters(s string) string {
@@ -107,4 +82,15 @@ func ValidateInput(srcType, srcPath, dstPath *string) error {
 		return ErrLegacyAndDestEqual
 	}
 	return nil
+}
+
+func FindUniqueConcurrentIdxStatements(lineJoin string) []string {
+	matches := concurrentIndexesGroupReg.FindAllStringSubmatch(lineJoin, -1)
+
+	result := make([]string, 0)
+
+	for _, match := range matches {
+		result = append(result, match[0])
+	}
+	return result
 }

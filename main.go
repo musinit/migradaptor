@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -26,7 +25,7 @@ func main() {
 	}
 
 	if err := builder.ValidateInput(&sourceType, &srcMigrPath, &dstMigrPath); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "validate error: %s\n", err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "validate error: %s\n Run migrator -help for information.", err.Error())
 		os.Exit(1)
 	}
 
@@ -34,6 +33,23 @@ func main() {
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get sourceType type error: %s\n", err.Error())
 		os.Exit(1)
+	}
+
+	if _, err := os.Stat(srcMigrPath); os.IsNotExist(err) {
+		_, _ = fmt.Fprintf(os.Stderr, "source migration directory doesn't exists")
+		os.Exit(1)
+	}
+
+	if _, err := os.Stat(dstMigrPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(dstMigrPath, os.ModePerm); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "create dest dir error: %s\n", err.Error())
+			os.Exit(1)
+		}
+	} else {
+		if err := builder.RemoveContents(dstMigrPath); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "clear dest migrations folder error: %s\n", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	files, err := os.ReadDir(srcMigrPath)
@@ -66,10 +82,35 @@ func main() {
 			os.Exit(1)
 		}
 
-		var upMigr, downMigr bytes.Buffer
+		var upMigr, downMigr []string
 		switch srcType {
 		default:
-			upMigr, downMigr = builder.BuildMigrationDataBuffer(lines)
+			concurrentIdxStatements := builder.FindUniqueConcurrentIdxStatements(builder.JoinMigrationData(lines))
+			if len(concurrentIdxStatements) > 1 {
+				println(len(concurrentIdxStatements))
+				for id, idxStatement := range concurrentIdxStatements {
+					upMigrSt, downMigrSt := builder.BuildMigrationData([]string{idxStatement})
+					timestamp, name := builder.ParseFilename(file.Name())
+					if timestamp <= maxTime {
+						timestamp = maxTime + 1
+					}
+					maxTime = timestamp
+					upMgrFn := fmt.Sprintf("%d_%s_%d.up.sql", timestamp, name, id)
+					downMgrFn := fmt.Sprintf("%d_%s_%d.down.sql", timestamp, name, id)
+					if err := builder.CreateAndWrite(dstMigrPath, upMgrFn, upMigrSt); err != nil {
+						_, _ = fmt.Fprintf(os.Stderr, "writing destination migrations error: %s\n", err.Error())
+						os.Exit(1)
+					}
+					if err := builder.CreateAndWrite(dstMigrPath, downMgrFn, downMigrSt); err != nil {
+						_, _ = fmt.Fprintf(os.Stderr, "writing destination migrations error: %s\n", err.Error())
+						os.Exit(1)
+					}
+				}
+				continue
+
+			}
+			// no concurrent indexes in one file, no need to split it in several files
+			upMigr, downMigr = builder.BuildMigrationData(lines)
 		}
 
 		timestamp, name := builder.ParseFilename(file.Name())
@@ -80,16 +121,16 @@ func main() {
 
 		println(fmt.Sprintf("%d : %s", timestamp, name))
 
-		upMgrFile := fmt.Sprintf("%d_%s.up.sql", timestamp, name)
-		downMgrFile := fmt.Sprintf("%d_%s.down.sql", timestamp, name)
+		upMgrFn := fmt.Sprintf("%d_%s.up.sql", timestamp, name)
+		downMgrFn := fmt.Sprintf("%d_%s.down.sql", timestamp, name)
 
 		// create migration .up file
-		if err := builder.CreateAndWrite(dstMigrPath, upMgrFile, &upMigr); err != nil {
+		if err := builder.CreateAndWrite(dstMigrPath, upMgrFn, upMigr); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "writing destination migrations error: %s\n", err.Error())
 			os.Exit(1)
 		}
 		// migration .down file
-		if err := builder.CreateAndWrite(dstMigrPath, downMgrFile, &downMigr); err != nil {
+		if err := builder.CreateAndWrite(dstMigrPath, downMgrFn, downMigr); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "writing destination migrations error: %s\n", err.Error())
 			os.Exit(1)
 		}
