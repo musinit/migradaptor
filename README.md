@@ -27,4 +27,4 @@ $ migradaptor -src-folder={source_folder} -dst-folder={destination_folder}
 ```
 
 TODO
- - processing multiple concurrent indexes in single file, splitting the file by the number of such CREATE CONCURRENT INDEX.
+ - processing multiple concurrent indexes in single file, splitting the file by the number of such CREATE INDEX CONCURRENTLY commands.
