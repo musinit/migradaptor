@@ -18,12 +18,12 @@ Feel free to suggest an Issue or PR.
 ## Getting started
 Install
 ```bash
-  go install github.com/musinit/migradaptor/...@latest
+go install github.com/musinit/migradaptor/...@latest
 ```
 
 Use
 ```bash
-  migradaptor -src-folder={source_folder} -dst-folder={destination_folder}
+migradaptor -src-folder={source_folder} -dst-folder={destination_folder}
 ```
 
 TODO
