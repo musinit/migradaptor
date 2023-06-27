@@ -36,7 +36,7 @@ func main() {
 	}
 
 	if _, err := os.Stat(srcMigrPath); os.IsNotExist(err) {
-		_, _ = fmt.Fprint(os.Stderr, "source migration directory doesn't exists\n")
+		_, _ = fmt.Fprint(os.Stderr, "source migration directory doesn't existss")
 		os.Exit(1)
 	}
 
