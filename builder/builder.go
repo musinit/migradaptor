@@ -41,6 +41,11 @@ func isKeyExists(reg *regexp.Regexp, source string) bool {
 	return len(fileparts) != 0
 }
 
+func isSubstringExists(substr, source string) bool {
+	k := strings.Index(source, substr)
+	return k > 0
+}
+
 func RemoveSpecialCharacters(s string) string {
 	result := s
 	for k, _ := range specialCharsMap {

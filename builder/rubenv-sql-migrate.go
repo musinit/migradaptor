@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"bytes"
 	"regexp"
 	"strconv"
 
@@ -9,12 +8,19 @@ import (
 )
 
 var (
-	filenameReg      = regexp.MustCompile("(\\d{0,15})-(.*)(.sql)")
-	noTransactionReg = regexp.MustCompile("notransaction")
-	statementBegin   = regexp.MustCompile("StatementBegin")
-	statementEnd     = regexp.MustCompile("StatementEnd")
-	migrationUpReg   = regexp.MustCompile("migrate Up")
-	migrationDownReg = regexp.MustCompile("migrate Down")
+	MigrationDownCmd  = "migrate Down"
+	MigrationUpCmd    = "migrate Up"
+	StatementBeginCmd = "StatementBegin"
+	StatementEndCmd   = "StatementEnd"
+	NoTransactionCmd  = "notransaction"
+)
+
+var (
+	ErrNoUpOrDownMigrationPart = errors.New("no up or down migration part")
+)
+
+var (
+	filenameReg = regexp.MustCompile("(\\d{0,15})-(.*)(.sql)")
 )
 
 func BuildMigrationData(lines []string) ([]string, []string) {
@@ -23,10 +29,10 @@ func BuildMigrationData(lines []string) ([]string, []string) {
 	upTransactionMode, downTransactionMode := false, false
 	for i := range lines {
 		line := lines[i]
-		upMigrationLine := isKeyExists(migrationUpReg, line)
-		downMigrationLine := isKeyExists(migrationDownReg, line)
+		upMigrationLine := isSubstringExists(MigrationUpCmd, line)
+		downMigrationLine := isSubstringExists(MigrationDownCmd, line)
 		if upMigrationLine {
-			if !isKeyExists(noTransactionReg, line) {
+			if !isSubstringExists(NoTransactionCmd, line) {
 				upTransactionMode = true
 				upLines = append(upLines, "BEGIN;\n")
 			}
@@ -35,13 +41,13 @@ func BuildMigrationData(lines []string) ([]string, []string) {
 			if upTransactionMode {
 				upLines = append(upLines, "COMMIT;\n")
 			}
-			if !isKeyExists(noTransactionReg, line) {
+			if !isSubstringExists(NoTransactionCmd, line) {
 				downTransactionMode = true
 				downLines = append(downLines, "BEGIN;\n")
 			}
 			isUpTx = false
 		} else {
-			if isKeyExists(statementBegin, line) || isKeyExists(statementEnd, line) {
+			if isSubstringExists(StatementBeginCmd, line) || isSubstringExists(StatementEndCmd, line) {
 				upLines = append(upLines, "\n")
 			} else {
 				if isUpTx {
@@ -59,51 +65,6 @@ func BuildMigrationData(lines []string) ([]string, []string) {
 	}
 
 	return upLines, downLines
-}
-
-func BuildMigrationDataBuffer(lines []string) (bytes.Buffer, bytes.Buffer) {
-	var upMigr bytes.Buffer
-	var downMigr bytes.Buffer
-	isUpTx := true
-	upTransactionMode, downTransactionMode := false, false
-	for i := range lines {
-		line := lines[i]
-		upMigrationLine := isKeyExists(migrationUpReg, line)
-		downMigrationLine := isKeyExists(migrationDownReg, line)
-		if upMigrationLine {
-			if !isKeyExists(noTransactionReg, line) {
-				upTransactionMode = true
-				upMigr.Write([]byte("BEGIN;\n"))
-			}
-			isUpTx = true
-		} else if downMigrationLine {
-			if upTransactionMode {
-				upMigr.Write([]byte("COMMIT;\n"))
-			}
-			if !isKeyExists(noTransactionReg, line) {
-				downTransactionMode = true
-				downMigr.Write([]byte("BEGIN;\n"))
-			}
-			isUpTx = false
-		} else {
-			if isKeyExists(statementBegin, line) || isKeyExists(statementEnd, line) {
-				upMigr.Write([]byte("\n"))
-			} else {
-				if isUpTx {
-					upMigr.Write([]byte(line))
-				} else {
-					downMigr.Write([]byte(line))
-				}
-			}
-
-			upMigr.Write([]byte("\n"))
-		}
-	}
-	if downTransactionMode {
-		downMigr.Write([]byte("\n"))
-		downMigr.Write([]byte("COMMIT;\n"))
-	}
-	return upMigr, downMigr
 }
 
 func ParseFilename(filename string) (int64, string) {
