@@ -40,6 +40,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	pwd, err := os.Getwd()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "can't get current directory: %s\n", err.Error())
+		os.Exit(1)
+	}
+	dstMigrPath = path.Join(pwd, dstMigrPath)
+	srcMigrPath = path.Join(pwd, srcMigrPath)
+
 	if _, err := os.Stat(dstMigrPath); os.IsNotExist(err) {
 		if err := os.MkdirAll(dstMigrPath, os.ModePerm); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "create dest dir error: %s\n", err.Error())
