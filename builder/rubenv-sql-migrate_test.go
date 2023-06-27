@@ -25,7 +25,7 @@ func Test_ParseFilename(t *testing.T) {
 			"1-1_initial.sql",
 			"1-1_initial.sql",
 			1,
-			"1",
+			"1_initial",
 		},
 		{
 			"1-_.sql",

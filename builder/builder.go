@@ -21,10 +21,6 @@ var (
 	SourceTypeRubenvSqlMigrate SourceType = "rubenv-sql-migrate"
 )
 
-type IBuilder interface {
-	BuildMigrationData(lines []string) ([]string, []string)
-}
-
 func GetSourceType(sourceType string) (SourceType, error) {
 	sourceType = strings.TrimSpace(sourceType)
 	sourceType = strings.ToLower(sourceType)
@@ -67,13 +63,13 @@ func JoinMigrationData(lines []string) string {
 func ValidateInput(srcType, srcPath, dstPath *string) error {
 	var errJoin error
 	if srcType == nil || (srcType != nil && *srcType == "") {
-		errJoin = errors.Join(ErrNoSourceProvided)
+		errJoin = errors.Join(errJoin, ErrNoSourceTypeProvided)
 	}
 	if srcPath == nil || (srcPath != nil && *srcPath == "") {
-		errJoin = errors.Join(ErrNoSrcFolderPath)
+		errJoin = errors.Join(errJoin, ErrNoSrcFolderPath)
 	}
 	if dstPath == nil || (dstPath != nil && *dstPath == "") {
-		errJoin = errors.Join(ErrNoDstFolderPath)
+		errJoin = errors.Join(errJoin, ErrNoDstFolderPath)
 	}
 	if errJoin != nil {
 		return errJoin

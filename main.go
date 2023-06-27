@@ -87,7 +87,6 @@ func main() {
 		default:
 			concurrentIdxStatements := builder.FindUniqueConcurrentIdxStatements(builder.JoinMigrationData(lines))
 			if len(concurrentIdxStatements) > 1 {
-				println(len(concurrentIdxStatements))
 				for id, idxStatement := range concurrentIdxStatements {
 					upMigrSt, downMigrSt := builder.BuildMigrationData([]string{idxStatement})
 					timestamp, name := builder.ParseFilename(file.Name())

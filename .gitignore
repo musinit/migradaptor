@@ -2,3 +2,5 @@ migradaptor
 .DS_Store
 .vscode
 .idea
+src-folder
+dst-folder

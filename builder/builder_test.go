@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/musinit/migradaptor/builder"
+	"github.com/musinit/migradaptor/utils"
 )
 
 func TestGetSourceType(t *testing.T) {
@@ -170,9 +171,9 @@ func Test_JoinMigrationData(t *testing.T) {
 
 func TestValidateInput(t *testing.T) {
 	type args struct {
-		source     *string
-		legacyPath *string
-		path       *string
+		sourceType *string
+		srcPath    *string
+		dstPath    *string
 		err        error
 	}
 	tests := []struct {
@@ -181,23 +182,80 @@ func TestValidateInput(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "simple",
+			name: "each argument is nil",
 			args: args{
-				source:     nil,
-				legacyPath: nil,
-				path:       nil,
+				sourceType: nil,
+				srcPath:    nil,
+				dstPath:    nil,
 			},
 			wantErr: errors.Join(
-				builder.ErrNoSourceProvided,
+				builder.ErrNoSourceTypeProvided,
+				builder.ErrNoDstFolderPath,
 				builder.ErrNoSrcFolderPath,
+			),
+		},
+		{
+			name: "each argument is empty",
+			args: args{
+				sourceType: utils.Ptr(""),
+				srcPath:    utils.Ptr(""),
+				dstPath:    utils.Ptr(""),
+			},
+			wantErr: errors.Join(
+				builder.ErrNoSourceTypeProvided,
+				builder.ErrNoDstFolderPath,
+				builder.ErrNoSrcFolderPath,
+			),
+		},
+		{
+			name: "source type is empty",
+			args: args{
+				sourceType: utils.Ptr(""),
+				srcPath:    utils.Ptr("1"),
+				dstPath:    utils.Ptr("1"),
+			},
+			wantErr: errors.Join(
+				builder.ErrNoSourceTypeProvided,
+			),
+		},
+		{
+			name: "source type invalid format",
+			args: args{
+				sourceType: utils.Ptr("rubeenv_wrong"),
+				srcPath:    utils.Ptr("2"),
+				dstPath:    utils.Ptr("1"),
+			},
+			wantErr: errors.Join(
+				builder.ErrUnknownSourceType,
+			),
+		},
+		{
+			name: "src path empty",
+			args: args{
+				sourceType: utils.Ptr("rubenv-sql-migrate"),
+				srcPath:    utils.Ptr(""),
+				dstPath:    utils.Ptr("1"),
+			},
+			wantErr: errors.Join(
+				builder.ErrNoSrcFolderPath,
+			),
+		},
+		{
+			name: "src dst empty",
+			args: args{
+				sourceType: utils.Ptr("rubenv-sql-migrate"),
+				srcPath:    utils.Ptr("1"),
+				dstPath:    utils.Ptr(""),
+			},
+			wantErr: errors.Join(
 				builder.ErrNoDstFolderPath,
 			),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := builder.ValidateInput(tt.args.source, tt.args.legacyPath, tt.args.path)
-			require.ErrorAs(t, tt.wantErr, err)
+			err := builder.ValidateInput(tt.args.sourceType, tt.args.srcPath, tt.args.dstPath)
+			require.Error(t, tt.wantErr, err)
 		})
 	}
 }
@@ -225,9 +283,9 @@ func TestFindUniqueConcurrentIdxStatements(t *testing.T) {
 				CREATE INDEX CONCURRENTLY clients_id_idx ON clients;`,
 			},
 			want: []string{
-				"companies_id_idx",
-				"companies_title_idx",
-				"clients_id_idx",
+				"CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);",
+				"CREATE INDEX CONCURRENTLY companies_title_idx ON companies (title);",
+				"CREATE INDEX CONCURRENTLY clients_id_idx ON clients;",
 			},
 		},
 		{
@@ -237,7 +295,7 @@ func TestFindUniqueConcurrentIdxStatements(t *testing.T) {
 				CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);`,
 			},
 			want: []string{
-				"companies_id_idx",
+				"CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);",
 			},
 		},
 	}
