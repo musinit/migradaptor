@@ -5,21 +5,31 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime/debug"
 
 	"github.com/musinit/migradaptor/builder"
 )
 
 func main() {
-	var sourceType string
-	var srcMigrPath string
-	var dstMigrPath string
-	helpPtr := flag.Bool("help", false, "print help information")
+	var (
+		sourceType  string
+		srcMigrPath string
+		dstMigrPath string
+		flgVersion  bool
+		helpPtr     bool
+	)
+	flag.BoolVar(&flgVersion, "version", false, "if true, print version and exit")
+	flag.BoolVar(&helpPtr, "help", false, "print help information")
 	flag.StringVar(&sourceType, "source-type", "rubenv-sql-migrate", "source library to convert from")
 	flag.StringVar(&srcMigrPath, "src", "src", "source migrations folder")
 	flag.StringVar(&dstMigrPath, "dst", "dst", "destination migrations folder")
 	flag.Parse()
 
-	if helpPtr != nil && *helpPtr {
+	switch {
+	case flgVersion:
+		println(GetVersion())
+		os.Exit(0)
+	case helpPtr:
 		PrintHelp()
 		os.Exit(0)
 	}
@@ -96,7 +106,11 @@ func main() {
 			upMigr, downMigr = builder.BuildMigrationData(lines)
 		}
 
-		timestamp, name := builder.ParseFilename(file.Name())
+		timestamp, name, err := builder.ParseFilename(file.Name())
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "filename parsing error: %s\n", err.Error())
+			os.Exit(1)
+		}
 		if timestamp <= maxTime {
 			timestamp = maxTime + 1
 		}
@@ -135,4 +149,11 @@ Options:
   -dst="destination migrations path"  Destination migrations folder.
 `
 	println(helpText)
+}
+
+func GetVersion() string {
+	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
+		return buildInfo.Main.Version
+	}
+	return "dev"
 }

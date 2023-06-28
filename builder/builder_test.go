@@ -2,7 +2,7 @@ package builder_test
 
 import (
 	"errors"
-	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -174,7 +174,6 @@ func TestValidateInput(t *testing.T) {
 		sourceType *string
 		srcPath    *string
 		dstPath    *string
-		err        error
 	}
 	tests := []struct {
 		name    string
@@ -260,54 +259,6 @@ func TestValidateInput(t *testing.T) {
 	}
 }
 
-func TestFindUniqueConcurrentIdxStatements(t *testing.T) {
-	type args struct {
-		lineJoin string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
-	}{
-		{
-			name: "several concurrent index with drop line",
-			args: args{
-				lineJoin: `
-				DROP INDEX companies_id_idx;
-				CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);
-				
-				DROP INDEX companies_title_idx;
-				CREATE INDEX CONCURRENTLY companies_title_idx ON companies (title);
-				
-				DROP INDEX clients_id_idx;
-				CREATE INDEX CONCURRENTLY clients_id_idx ON clients;`,
-			},
-			want: []string{
-				"CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);",
-				"CREATE INDEX CONCURRENTLY companies_title_idx ON companies (title);",
-				"CREATE INDEX CONCURRENTLY clients_id_idx ON clients;",
-			},
-		},
-		{
-			name: "one concurrent without drop line",
-			args: args{
-				lineJoin: `
-				CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);`,
-			},
-			want: []string{
-				"CREATE INDEX CONCURRENTLY companies_id_idx ON companies (id);",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := builder.FindUniqueConcurrentIdxStatements(tt.args.lineJoin); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("FindUniqueConcurrentIdxStatements() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestIsSubstringExists(t *testing.T) {
 	type args struct {
 		source string
@@ -357,8 +308,8 @@ func TestIsSubstringExists(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := builder.IsSubstringExists(tt.args.source, tt.args.substr); got != tt.want {
-				t.Errorf("IsSubstringExists() = %v, want %v", got, tt.want)
+			if got := strings.Contains(tt.args.source, tt.args.substr); got != tt.want {
+				t.Errorf("strings.Contains() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	sqlExt                    = regexp.MustCompile("\\.sql$")
-	concurrentIndexesGroupReg = regexp.MustCompile("(?:(CREATE INDEX CONCURRENTLY)\\s+(?P<indexName>\\w+).+?;)")
+	sqlExt                    = regexp.MustCompile(`\\.sql$`)
+	concurrentIndexesGroupReg = regexp.MustCompile(`(?:(CREATE INDEX CONCURRENTLY)\\s+(?P<indexName>\\w+).+?;)`)
 	specialCharsMap           = map[rune]struct{}{
 		rune('\t'): {},
 		rune('\n'): {},
@@ -41,13 +41,9 @@ func isKeyExists(reg *regexp.Regexp, source string) bool {
 	return len(fileparts) != 0
 }
 
-func IsSubstringExists(source, substr string) bool {
-	return strings.Index(source, substr) >= 0
-}
-
 func RemoveSpecialCharacters(s string) string {
 	result := s
-	for k, _ := range specialCharsMap {
+	for k := range specialCharsMap {
 		result = strings.ReplaceAll(result, string(k), "")
 	}
 	result = strings.TrimSpace(result)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -17,7 +18,7 @@ var (
 )
 
 var (
-	filenameReg = regexp.MustCompile("(\\d{0,15})-(.*)(.sql)")
+	filenameReg = regexp.MustCompile(`(\\d{0,15})-(.*)(.sql)`)
 )
 
 func BuildMigrationData(lines []string) ([]string, []string) {
@@ -25,27 +26,25 @@ func BuildMigrationData(lines []string) ([]string, []string) {
 	isUpTx := true
 	upTransactionMode, downTransactionMode := false, false
 	for _, line := range lines {
-		upMigrationLine := IsSubstringExists(line, MigrationUpCmd)
-		downMigrationLine := IsSubstringExists(line, MigrationDownCmd)
+		upMigrationLine := strings.Contains(line, MigrationUpCmd)
+		downMigrationLine := strings.Contains(line, MigrationDownCmd)
 		switch {
 		case upMigrationLine:
-			if !IsSubstringExists(line, NoTransactionCmd) {
+			if !strings.Contains(line, NoTransactionCmd) {
 				upTransactionMode = true
 				upLines = append(upLines, "BEGIN;\n")
 			}
 			isUpTx = true
-			break
 		case downMigrationLine:
 			if upTransactionMode {
 				upLines = append(upLines, "COMMIT;\n")
 			}
-			if !IsSubstringExists(line, NoTransactionCmd) {
+			if !strings.Contains(line, NoTransactionCmd) {
 				downTransactionMode = true
 				downLines = append(downLines, "BEGIN;\n")
 			}
 			isUpTx = false
-			break
-		case !(IsSubstringExists(line, StatementBeginCmd) || IsSubstringExists(line, StatementEndCmd)):
+		case !(strings.Contains(line, StatementBeginCmd) || strings.Contains(line, StatementEndCmd)):
 			if isUpTx {
 				upLines = append(upLines, line)
 			} else {
@@ -62,22 +61,22 @@ func BuildMigrationData(lines []string) ([]string, []string) {
 	return upLines, downLines
 }
 
-func ParseFilename(filename string) (int64, string) {
+func ParseFilename(filename string) (int64, string, error) {
 	fileparts := filenameReg.FindAllStringSubmatch(filename, 10)
 	if !isKeyExists(filenameReg, filename) {
-		panic("no parts")
+		return 0, "", errors.New("parse fileparts: filename not match")
 	}
 	fel := fileparts[0]
 	// {timestamp}-{name}.sql format is expected
 	// 1 - timestamp, 2 - name
 	if len(fel) < 2 {
-		panic(errors.New("can't parse file " + filename))
+		return 0, "", errors.New("parse file")
 	}
 	ts := fel[1]
 	name := fel[2]
 	tsInt, err := strconv.ParseInt(ts, 10, 64)
 	if err != nil {
-		panic(err)
+		return 0, "", errors.Wrap(err, "parse timestamp")
 	}
-	return tsInt, name
+	return tsInt, name, nil
 }

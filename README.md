@@ -1,4 +1,7 @@
-# Migradaptor
+# migradaptor
+> Tool for adapting migration files for different library formats. Current version allows to adapt [rubenv/sql-migrate](https://github.com/rubenv/sql-migrate) files to [golang-migrate](https://github.com/golang-migrate).
+
+[![Test](https://github.com/musinit/migradaptor/actions/workflows/test.yml/badge.svg)](https://github.com/musinit/migradaptor/actions/workflows/test.yml) 
 
 About
 ---------
@@ -26,5 +29,9 @@ Use
 migradaptor -src={source_folder} -dst={destination_folder}
 ```
 
-TODO
+## Questions or Feedback?
+
+You can use GitHub Issues for feedback or questions.
+
+## TODO
  - processing multiple concurrent indexes in single file, splitting the file by the number of such CREATE INDEX CONCURRENTLY commands.
