@@ -15,8 +15,8 @@ func main() {
 	var dstMigrPath string
 	helpPtr := flag.Bool("help", false, "print help information")
 	flag.StringVar(&sourceType, "source-type", "rubenv-sql-migrate", "source library to convert from")
-	flag.StringVar(&srcMigrPath, "src-folder", "src-folder", "source migrations folder")
-	flag.StringVar(&dstMigrPath, "dst-folder", "dst-folder", "destination migrations folder")
+	flag.StringVar(&srcMigrPath, "src", "src", "source migrations folder")
+	flag.StringVar(&dstMigrPath, "dst", "dst", "destination migrations folder")
 	flag.Parse()
 
 	if helpPtr != nil && *helpPtr {
@@ -62,7 +62,7 @@ func main() {
 
 	files, err := os.ReadDir(srcMigrPath)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "read legacy migrations folder error: %s\n", err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "read src migrations folder error: %s\n", err.Error())
 		os.Exit(1)
 	}
 	maxTime := int64(0)
@@ -74,19 +74,19 @@ func main() {
 
 		lf, err := os.Open(path.Join(srcMigrPath, file.Name()))
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "open legacy migrations folder error: %s\n", err.Error())
+			_, _ = fmt.Fprintf(os.Stderr, "open src migrations folder error: %s\n", err.Error())
 			os.Exit(1)
 		}
 		defer func() {
 			if err := lf.Close(); err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "closing legacy migrations folder error: %s\n", err.Error())
+				_, _ = fmt.Fprintf(os.Stderr, "closing src migrations folder error: %s\n", err.Error())
 				os.Exit(1)
 			}
 		}()
 
 		lines, err := builder.ReadFileLines(lf)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "reading legacy migrations file lines error: %s\n", err.Error())
+			_, _ = fmt.Fprintf(os.Stderr, "reading src migrations file lines error: %s\n", err.Error())
 			os.Exit(1)
 		}
 
@@ -130,9 +130,9 @@ Usage: migradaptor [options] ...
 
 Options:
 
-  -source-type=rubenv-sql-migration          Source library of sql files, that need to transform.
-  -src-folder="source migrations path"       Source migrations folder.
-  -dst-folder="destination migrations path"  Destination migrations folder.
+  -source-type=rubenv-sql-migration   Source library of sql files, that need to transform.
+  -src="source migrations path"       Source migrations folder.
+  -dst="destination migrations path"  Destination migrations folder.
 `
 	println(helpText)
 }

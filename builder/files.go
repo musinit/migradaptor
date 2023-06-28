@@ -30,7 +30,6 @@ func RemoveContents(dir string) error {
 func ReadFileLines(f *os.File) ([]string, error) {
 	result := make([]string, 0)
 	scanner := bufio.NewScanner(f)
-	scanner.Scan()
 	for scanner.Scan() {
 		result = append(result, scanner.Text())
 	}

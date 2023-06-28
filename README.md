@@ -23,7 +23,7 @@ go install github.com/musinit/migradaptor/...@latest
 
 Use
 ```bash
-migradaptor -src-folder={source_folder} -dst-folder={destination_folder}
+migradaptor -src={source_folder} -dst={destination_folder}
 ```
 
 TODO

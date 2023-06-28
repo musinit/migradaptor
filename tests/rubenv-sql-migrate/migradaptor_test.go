@@ -65,8 +65,7 @@ func TestBuildMigrationData(t *testing.T) {
 					DROP INDEX IF EXISTS companies_title_idx;
 					DROP TABLE IF EXISTS companies;
 					`,
-			resultUp: `
-					CREATE TABLE companies (id int, title string);
+			resultUp: `CREATE TABLE companies (id int, title string);
 					CREATE INDEX companies_title_idx on companies (title);`,
 			resultDown: `BEGIN;
 						DROP INDEX IF EXISTS companies_title_idx;

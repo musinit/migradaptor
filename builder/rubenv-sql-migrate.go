@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -8,15 +9,11 @@ import (
 )
 
 var (
-	MigrationDownCmd  = "migrate Down"
-	MigrationUpCmd    = "migrate Up"
+	MigrationDownCmd  = "+migrate Down"
+	MigrationUpCmd    = "+migrate Up"
 	StatementBeginCmd = "StatementBegin"
 	StatementEndCmd   = "StatementEnd"
 	NoTransactionCmd  = "notransaction"
-)
-
-var (
-	ErrNoUpOrDownMigrationPart = errors.New("no up or down migration part")
 )
 
 var (
@@ -27,37 +24,35 @@ func BuildMigrationData(lines []string) ([]string, []string) {
 	upLines, downLines := make([]string, 0, len(lines)/2), make([]string, 0, len(lines)/2)
 	isUpTx := true
 	upTransactionMode, downTransactionMode := false, false
-	for i := range lines {
-		line := lines[i]
-		upMigrationLine := isSubstringExists(MigrationUpCmd, line)
-		downMigrationLine := isSubstringExists(MigrationDownCmd, line)
-		if upMigrationLine {
-			if !isSubstringExists(NoTransactionCmd, line) {
+	for _, line := range lines {
+		upMigrationLine := IsSubstringExists(line, MigrationUpCmd)
+		downMigrationLine := IsSubstringExists(line, MigrationDownCmd)
+		switch {
+		case upMigrationLine:
+			if !IsSubstringExists(line, NoTransactionCmd) {
 				upTransactionMode = true
 				upLines = append(upLines, "BEGIN;\n")
 			}
 			isUpTx = true
-		} else if downMigrationLine {
+			break
+		case downMigrationLine:
 			if upTransactionMode {
 				upLines = append(upLines, "COMMIT;\n")
 			}
-			if !isSubstringExists(NoTransactionCmd, line) {
+			if !IsSubstringExists(line, NoTransactionCmd) {
 				downTransactionMode = true
 				downLines = append(downLines, "BEGIN;\n")
 			}
 			isUpTx = false
-		} else {
-			if isSubstringExists(StatementBeginCmd, line) || isSubstringExists(StatementEndCmd, line) {
-				upLines = append(upLines, "\n")
+			break
+		case !(IsSubstringExists(line, StatementBeginCmd) || IsSubstringExists(line, StatementEndCmd)):
+			if isUpTx {
+				upLines = append(upLines, line)
 			} else {
-				if isUpTx {
-					upLines = append(upLines, line)
-				} else {
-					downLines = append(downLines, line)
-				}
+				downLines = append(downLines, line)
 			}
-
-			upLines = append(upLines, "\n")
+		default:
+			fmt.Printf("skip line %s", line)
 		}
 	}
 	if downTransactionMode {

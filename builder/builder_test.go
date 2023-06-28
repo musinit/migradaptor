@@ -307,3 +307,59 @@ func TestFindUniqueConcurrentIdxStatements(t *testing.T) {
 		})
 	}
 }
+
+func TestIsSubstringExists(t *testing.T) {
+	type args struct {
+		source string
+		substr string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "MigrationUpCmd exists",
+			args: args{
+				source: `
+					-- +migrate Up
+					CREATE SCHEMA IF NOT EXISTS gmf_go;
+					SET search_path TO gmf_go;
+					`,
+				substr: builder.MigrationUpCmd,
+			},
+			want: true,
+		},
+		{
+			name: "MigrationUpCmd does not exists",
+			args: args{
+				source: `
+					-- +migrate
+					CREATE SCHEMA IF NOT EXISTS gmf_go;
+					SET search_path TO gmf_go;
+					`,
+				substr: builder.MigrationUpCmd,
+			},
+			want: false,
+		},
+		{
+			name: "MigrationDownCmd exists",
+			args: args{
+				source: `
+					-- +migrate Down
+					CREATE SCHEMA IF NOT EXISTS gmf_go;
+					SET search_path TO gmf_go;
+					`,
+				substr: builder.MigrationDownCmd,
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := builder.IsSubstringExists(tt.args.source, tt.args.substr); got != tt.want {
+				t.Errorf("IsSubstringExists() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
