@@ -28,11 +28,12 @@ Use
 ```bash
 migradaptor -src={source_folder} -dst={destination_folder}
 ```
-## Supported migrations source formats:
+## Supported migrations source formats
 - [rubenv/sql-migrate](https://github.com/rubenv/sql-migrate)
 
 TODO:
 - [Dbmate](https://github.com/amacneil/dbmate)
+- [goose](https://github.com/pressly/goose)
 
 ## Questions or Feedback?
 
