@@ -7,9 +7,8 @@ import (
 )
 
 var (
-	sqlExt                    = regexp.MustCompile(`\\.sql$`)
-	concurrentIndexesGroupReg = regexp.MustCompile(`(?:(CREATE INDEX CONCURRENTLY)\\s+(?P<indexName>\\w+).+?;)`)
-	specialCharsMap           = map[rune]struct{}{
+	sqlExt          = regexp.MustCompile(`.sql$`)
+	specialCharsMap = map[rune]struct{}{
 		rune('\t'): {},
 		rune('\n'): {},
 	}
@@ -78,15 +77,4 @@ func ValidateInput(srcType, srcPath, dstPath *string) error {
 		return ErrLegacyAndDestEqual
 	}
 	return nil
-}
-
-func FindUniqueConcurrentIdxStatements(lineJoin string) []string {
-	matches := concurrentIndexesGroupReg.FindAllStringSubmatch(lineJoin, -1)
-
-	result := make([]string, 0)
-
-	for _, match := range matches {
-		result = append(result, match[0])
-	}
-	return result
 }
