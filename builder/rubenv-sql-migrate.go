@@ -64,7 +64,7 @@ func BuildMigrationData(lines []string) ([]string, []string) {
 func ParseFilename(filename string) (int64, string, error) {
 	fileparts := filenameReg.FindAllStringSubmatch(filename, 10)
 	if !isKeyExists(filenameReg, filename) {
-		return 0, "", errors.New("parse fileparts: filename not match")
+		return 0, "", fmt.Errorf("parse fileparts: filename %s not match", filename)
 	}
 	fel := fileparts[0]
 	// {timestamp}-{name}.sql format is expected
