@@ -18,7 +18,7 @@ var (
 )
 
 var (
-	filenameReg = regexp.MustCompile(`(\\d{0,15})-(.*)(.sql)`)
+	filenameReg = regexp.MustCompile(`(\d{0,15})-(.*)(.sql)`)
 )
 
 func BuildMigrationData(lines []string) ([]string, []string) {
