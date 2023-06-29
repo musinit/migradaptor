@@ -1,5 +1,8 @@
 # migradaptor
-> Tool for adapting migration files for different library formats. Current version allows to adapt [rubenv/sql-migrate](https://github.com/rubenv/sql-migrate) files to [golang-migrate](https://github.com/golang-migrate).
+> Tool for adapting migration files for different library formats. Current version allows to adapt to [golang-migrate](https://github.com/golang-migrate) from several sources:
+> -  [rubenv/sql-migrate](https://github.com/rubenv/sql-migrate)
+> -  [dbmate](https://github.com/amacneil/dbmate)
+> - [goose](https://github.com/pressly/goose)
 
 [![Test](https://github.com/musinit/migradaptor/actions/workflows/test.yml/badge.svg)](https://github.com/musinit/migradaptor/actions/workflows/test.yml) 
 
