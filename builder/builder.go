@@ -2,6 +2,7 @@ package builder
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -14,20 +15,24 @@ var (
 	}
 )
 
-type SourceType string
+type Cmd interface {
+	~string
+}
+
+type DstType string
 
 var (
-	SourceTypeRubenvSqlMigrate SourceType = "rubenv-sql-migrate"
+	DstTypeSqlMigrate DstType = "golang-migrate"
 )
 
-func GetSourceType(sourceType string) (SourceType, error) {
+func GetDstType(sourceType string) (DstType, error) {
 	sourceType = strings.TrimSpace(sourceType)
 	sourceType = strings.ToLower(sourceType)
 	switch sourceType {
-	case string(SourceTypeRubenvSqlMigrate):
-		return SourceTypeRubenvSqlMigrate, nil
+	case string(DstTypeSqlMigrate):
+		return DstTypeSqlMigrate, nil
 	default:
-		return *(new(SourceType)), ErrUnknownSourceType
+		return *(new(DstType)), ErrUnknownSourceType
 	}
 }
 
@@ -59,10 +64,10 @@ func JoinMigrationData(lines []string) string {
 	return result.String()
 }
 
-func ValidateInput(srcType, srcPath, dstPath *string) error {
+func ValidateInput(dstType, srcPath, dstPath *string) error {
 	var errJoin error
-	if srcType == nil || (srcType != nil && *srcType == "") {
-		errJoin = errors.Join(errJoin, ErrNoSourceTypeProvided)
+	if dstType == nil || (dstType != nil && *dstType == "") {
+		errJoin = errors.Join(errJoin, ErrNoDstTypeProvided)
 	}
 	if srcPath == nil || (srcPath != nil && *srcPath == "") {
 		errJoin = errors.Join(errJoin, ErrNoSrcFolderPath)
@@ -77,4 +82,67 @@ func ValidateInput(srcType, srcPath, dstPath *string) error {
 		return ErrLegacyAndDestEqual
 	}
 	return nil
+}
+
+func IsContainsCmd[T Cmd](src string, substrs ...T) bool {
+	for _, substr := range substrs {
+		if strings.Contains(src, string(substr)) {
+			return true
+		}
+	}
+	return false
+}
+
+func BuildMigrationData(lines []string) ([]string, []string) {
+	upLines, downLines := make([]string, 0, len(lines)/2), make([]string, 0, len(lines)/2)
+	isUpTx := true
+	upTransactionMode, downTransactionMode := false, false
+	for _, line := range lines {
+		upMigrationLine := IsContainsCmd(line,
+			string(SqlMigrateCmdMigrationUp),
+			string(DbmateCmdMigrationUp),
+			string(GooseCmdMigrationUp),
+		)
+		downMigrationLine := IsContainsCmd(line,
+			string(SqlMigrateCmdMigrationDown),
+			string(DbmateCmdMigrationDown),
+			string(GooseCmdMigrationDown),
+		)
+		switch {
+		case upMigrationLine:
+			if !(IsContainsCmd(line, SqlMigrateCmdNoTransaction) ||
+				IsContainsCmd(line, DbmateCmdNoTransaction) ||
+				IsContainsCmd(line, GooseCmdNoTransaction)) {
+				upTransactionMode = true
+				upLines = append(upLines, "BEGIN;\n")
+			}
+			isUpTx = true
+		case downMigrationLine:
+			if upTransactionMode {
+				upLines = append(upLines, "COMMIT;\n")
+			}
+			if !(IsContainsCmd(line, SqlMigrateCmdNoTransaction) ||
+				IsContainsCmd(line, DbmateCmdNoTransaction) ||
+				IsContainsCmd(line, GooseCmdNoTransaction)) {
+				downTransactionMode = true
+				downLines = append(downLines, "BEGIN;\n")
+			}
+			isUpTx = false
+		case IsContainsCmd(line, SqlMigrateCmdStatementBegin) || IsContainsCmd(line, SqlMigrateCmdStatementEnd) ||
+			IsContainsCmd(line, GooseCmdStatementBegin) || IsContainsCmd(line, GooseCmdStatementEnd):
+			fmt.Printf("skip line %s", line)
+		default:
+			if isUpTx {
+				upLines = append(upLines, line)
+			} else {
+				downLines = append(downLines, line)
+			}
+
+		}
+	}
+	if downTransactionMode {
+		downLines = append(downLines, "\nCOMMIT;\n")
+	}
+
+	return upLines, downLines
 }

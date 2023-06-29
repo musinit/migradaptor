@@ -12,7 +12,7 @@ import (
 
 func main() {
 	var (
-		sourceType  string
+		dstType     string
 		srcMigrPath string
 		dstMigrPath string
 		flgVersion  bool
@@ -20,7 +20,7 @@ func main() {
 	)
 	flag.BoolVar(&flgVersion, "version", false, "if true, print version and exit")
 	flag.BoolVar(&helpPtr, "help", false, "print help information")
-	flag.StringVar(&sourceType, "source-type", "rubenv-sql-migrate", "source library to convert from")
+	flag.StringVar(&dstType, "dst-lib", "golang-migrate", "destination library format")
 	flag.StringVar(&srcMigrPath, "src", "src", "source migrations folder")
 	flag.StringVar(&dstMigrPath, "dst", "dst", "destination migrations folder")
 	flag.Parse()
@@ -34,19 +34,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	if err := builder.ValidateInput(&sourceType, &srcMigrPath, &dstMigrPath); err != nil {
+	if err := builder.ValidateInput(&dstType, &srcMigrPath, &dstMigrPath); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "validate error: %s\n Run migrator -help for information.\n", err.Error())
 		os.Exit(1)
 	}
 
-	srcType, err := builder.GetSourceType(sourceType)
+	srcType, err := builder.GetDstType(dstType)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "get sourceType type error: %s\n", err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "get dstType type error: %s\n", err.Error())
 		os.Exit(1)
 	}
 
 	if _, err := os.Stat(srcMigrPath); os.IsNotExist(err) {
-		_, _ = fmt.Fprint(os.Stderr, "source migration directory doesn't existss")
+		_, _ = fmt.Fprintf(os.Stderr, "source migration directory %s doesn't exists\n", srcMigrPath)
 		os.Exit(1)
 	}
 

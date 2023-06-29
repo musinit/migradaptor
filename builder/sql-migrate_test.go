@@ -37,6 +37,13 @@ func Test_ParseFilename(t *testing.T) {
 			"_",
 			nil,
 		},
+		{
+			"1_initial.sql",
+			"1_initial.sql",
+			1,
+			"initial",
+			nil,
+		},
 	}
 
 	for _, tc := range testCases {

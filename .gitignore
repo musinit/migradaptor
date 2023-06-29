@@ -4,4 +4,6 @@ migradaptor
 .idea
 src
 dst
-example
+example-sql-migrate
+example-goose
+example-dbmate

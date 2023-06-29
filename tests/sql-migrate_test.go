@@ -1,4 +1,4 @@
-package rubenv_sql_migrate_test
+package tests_test
 
 import (
 	"strings"
@@ -9,7 +9,7 @@ import (
 	"github.com/musinit/migradaptor/builder"
 )
 
-func TestBuildMigrationData(t *testing.T) {
+func TestSqlMigrate_BuildMigrationData(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name       string

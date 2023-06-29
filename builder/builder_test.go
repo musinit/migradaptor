@@ -2,7 +2,6 @@ package builder_test
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,25 +15,25 @@ func TestGetSourceType(t *testing.T) {
 	cases := []struct {
 		name    string
 		source  string
-		result  builder.SourceType
+		result  builder.DstType
 		wantErr error
 	}{
 		{
-			name:    "valid rubenv-sql-migrate type",
-			source:  "rubenv-sql-migrate",
-			result:  builder.SourceTypeRubenvSqlMigrate,
+			name:    "valid sql-migrate type",
+			source:  "golang-migrate",
+			result:  builder.DstTypeSqlMigrate,
 			wantErr: nil,
 		},
 		{
-			name:    "valid rubenv-sql-migrate type with spaces",
-			source:  "  rubenv-sql-migrate ",
-			result:  builder.SourceTypeRubenvSqlMigrate,
+			name:    "valid sql-migrate type with spaces",
+			source:  "  golang-migrate ",
+			result:  builder.DstTypeSqlMigrate,
 			wantErr: nil,
 		},
 		{
-			name:    "valid rubenv-sql-migrate type capital letters",
-			source:  "  RUBENV-SQL-MIGRATE ",
-			result:  builder.SourceTypeRubenvSqlMigrate,
+			name:    "valid sql-migrate type capital letters",
+			source:  "  GOLANG-MIGRATE ",
+			result:  builder.DstTypeSqlMigrate,
 			wantErr: nil,
 		},
 		{
@@ -46,7 +45,7 @@ func TestGetSourceType(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			st, err := builder.GetSourceType(tc.source)
+			st, err := builder.GetDstType(tc.source)
 
 			require.Equal(t, st, tc.result)
 			require.True(t, err == tc.wantErr)
@@ -188,7 +187,7 @@ func TestValidateInput(t *testing.T) {
 				dstPath:    nil,
 			},
 			wantErr: errors.Join(
-				builder.ErrNoSourceTypeProvided,
+				builder.ErrNoDstTypeProvided,
 				builder.ErrNoDstFolderPath,
 				builder.ErrNoSrcFolderPath,
 			),
@@ -201,7 +200,7 @@ func TestValidateInput(t *testing.T) {
 				dstPath:    utils.Ptr(""),
 			},
 			wantErr: errors.Join(
-				builder.ErrNoSourceTypeProvided,
+				builder.ErrNoDstTypeProvided,
 				builder.ErrNoDstFolderPath,
 				builder.ErrNoSrcFolderPath,
 			),
@@ -214,7 +213,7 @@ func TestValidateInput(t *testing.T) {
 				dstPath:    utils.Ptr("1"),
 			},
 			wantErr: errors.Join(
-				builder.ErrNoSourceTypeProvided,
+				builder.ErrNoDstTypeProvided,
 			),
 		},
 		{
@@ -231,7 +230,7 @@ func TestValidateInput(t *testing.T) {
 		{
 			name: "src path empty",
 			args: args{
-				sourceType: utils.Ptr("rubenv-sql-migrate"),
+				sourceType: utils.Ptr("sql-migrate"),
 				srcPath:    utils.Ptr(""),
 				dstPath:    utils.Ptr("1"),
 			},
@@ -242,7 +241,7 @@ func TestValidateInput(t *testing.T) {
 		{
 			name: "src dst empty",
 			args: args{
-				sourceType: utils.Ptr("rubenv-sql-migrate"),
+				sourceType: utils.Ptr("sql-migrate"),
 				srcPath:    utils.Ptr("1"),
 				dstPath:    utils.Ptr(""),
 			},
@@ -262,7 +261,7 @@ func TestValidateInput(t *testing.T) {
 func TestIsSubstringExists(t *testing.T) {
 	type args struct {
 		source string
-		substr string
+		substr builder.SqlMigrateCmd
 	}
 	tests := []struct {
 		name string
@@ -270,45 +269,45 @@ func TestIsSubstringExists(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "MigrationUpCmd exists",
+			name: "SqlMigrateCmdMigrationUp exists",
 			args: args{
 				source: `
 					-- +migrate Up
 					CREATE SCHEMA IF NOT EXISTS gmf_go;
 					SET search_path TO gmf_go;
 					`,
-				substr: builder.MigrationUpCmd,
+				substr: builder.SqlMigrateCmdMigrationUp,
 			},
 			want: true,
 		},
 		{
-			name: "MigrationUpCmd does not exists",
+			name: "SqlMigrateCmdMigrationUp does not exists",
 			args: args{
 				source: `
 					-- +migrate
 					CREATE SCHEMA IF NOT EXISTS gmf_go;
 					SET search_path TO gmf_go;
 					`,
-				substr: builder.MigrationUpCmd,
+				substr: builder.SqlMigrateCmdMigrationUp,
 			},
 			want: false,
 		},
 		{
-			name: "MigrationDownCmd exists",
+			name: "SqlMigrateCmdMigrationDown exists",
 			args: args{
 				source: `
 					-- +migrate Down
 					CREATE SCHEMA IF NOT EXISTS gmf_go;
 					SET search_path TO gmf_go;
 					`,
-				substr: builder.MigrationDownCmd,
+				substr: builder.SqlMigrateCmdMigrationDown,
 			},
 			want: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := strings.Contains(tt.args.source, tt.args.substr); got != tt.want {
+			if got := builder.IsContainsCmd(tt.args.source, tt.args.substr); got != tt.want {
 				t.Errorf("strings.Contains() = %v, want %v", got, tt.want)
 			}
 		})
