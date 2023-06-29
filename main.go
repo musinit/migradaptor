@@ -39,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srcType, err := builder.GetDstType(dstType)
+	destType, err := builder.GetDstType(dstType)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get dstType type error: %s\n", err.Error())
 		os.Exit(1)
@@ -101,7 +101,7 @@ func main() {
 		}
 
 		var upMigr, downMigr []string
-		switch srcType {
+		switch destType {
 		default:
 			upMigr, downMigr = builder.BuildMigrationData(lines)
 		}
